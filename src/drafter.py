@@ -63,6 +63,29 @@ def _format_input(scored: Scored) -> str:
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=20))
 def draft_comment(client: Anthropic, model: str, scored: Scored) -> str:
+    messages = [{"role": "user", "content": _format_input(scored)}]
+    text = _complete(client, model, messages)
+    # The model tends to overrun the length rule; one tightening pass fixes it.
+    words = len(text.split())
+    if words > MAX_WORDS and not is_skip(text):
+        messages += [
+            {"role": "assistant", "content": text},
+            {
+                "role": "user",
+                "content": (
+                    f"That's {words} words. Cut it to under 100 by dropping a whole point, "
+                    "not by compressing sentences. Keep the voice. Output only the reply."
+                ),
+            },
+        ]
+        text = _complete(client, model, messages)
+    return _strip_ai_tells(text)
+
+
+MAX_WORDS = 110
+
+
+def _complete(client: Anthropic, model: str, messages: list[dict]) -> str:
     resp = client.messages.create(
         model=model,
         max_tokens=600,
@@ -73,10 +96,9 @@ def draft_comment(client: Anthropic, model: str, scored: Scored) -> str:
                 "cache_control": {"type": "ephemeral"},
             }
         ],
-        messages=[{"role": "user", "content": _format_input(scored)}],
+        messages=messages,
     )
-    text = "".join(b.text for b in resp.content if getattr(b, "type", "") == "text")
-    return _strip_ai_tells(text.strip())
+    return "".join(b.text for b in resp.content if getattr(b, "type", "") == "text").strip()
 
 
 _EMPHASIS_RE = re.compile(r"\*{1,2}([^*\n]+)\*{1,2}")
