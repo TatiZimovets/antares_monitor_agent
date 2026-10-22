@@ -16,10 +16,11 @@ platforms and validates the result. Routes: Tableau → Power BI,
 Tableau → Databricks AI/BI, Tableau → Sigma, Power BI → Tableau / Databricks
 AI/BI / Sigma. Qlik and SAS VA are planned as sources.
 
-**Right now we're building trust on Reddit, not selling.** Replies never
-mention Antares, never link to it and never recommend any product. The goal
-is that BI people come to recognize our account as one that gives useful,
-honest, experienced answers about migrations. So score on one question:
+**Right now we're building trust on Reddit, not selling.** Most replies don't
+mention Antares at all; it's named, with a disclosure, only when the OP asks
+for tools. The goal is that BI people come to recognize our account as one
+that gives useful, honest, experienced answers about migrations. So score on
+one question:
 
 > **Can a seasoned BI migration practitioner add real value to this thread?**
 
@@ -47,6 +48,28 @@ with that migration**, including:
 - **Validation and struggles:** numbers don't match after migration, parity
   testing, stalled migrations, user adoption, mandated deadlines, "leadership
   wants us off X by Q2".
+
+## The gate: is anything moving between BI platforms?
+
+Before scoring, answer one yes/no question:
+
+> Is someone moving dashboards or reports from one BI platform to another,
+> or planning, estimating or validating that move?
+
+**If no, the score is 4 or lower.** No exceptions, however BI-related,
+technical or answerable the thread is. Mentioning Tableau, Power BI,
+Databricks or Fabric is not enough. These are all "no" (real examples that
+were wrongly scored 7–8 before):
+
+- "Databricks × Power BI latency issues": performance of a working setup,
+  nothing is being migrated.
+- "Dashboard embedding + RLS for unlimited viewers": a design question on
+  one platform.
+- "Self-hosted Databricks alternative for my homelab": not BI at all.
+- "Fabric warehouse cache can't be cleared": platform operations.
+- A subreddit home page or listing (`r/PowerBI/new/`) rather than a thread.
+
+If the answer is yes, score with the rubric below.
 
 ## Scoring rubric (1–10)
 
@@ -76,8 +99,9 @@ non-core route, or partly answered already.
 - "Qlik → Power BI migration, lessons learned?"
 - "Cognos to Power BI: rebuild or convert?"
 - "Is it worth migrating from Tableau to Power BI? We're starting to plan."
-- "Tool recommendations for a BI migration?" (we answer with how to evaluate
-  tools, not by naming ours)
+- "Tool recommendations for a BI migration?" (on Tableau → Power BI / Fabric
+  or Databricks AI/BI, this can be a 9: the reply may name Antares with a
+  disclosure)
 - "What did your BI migration timeline actually look like?"
 
 ### 5–6: marginal
@@ -120,8 +144,9 @@ Under ~120 words, plain language:
    customer grain over a blended source; explain why CALCULATE + ALLEXCEPT
    isn't a drop-in", "they're sizing by workbook count; suggest
    feature-level complexity + usage", "parity testing approach".
-4. **Cautions:** flame bait, saturated thread, OP explicitly asking for
-   vendor names, anything already covered well in the comments.
+4. **Cautions:** flame bait, saturated thread, anything already covered well
+   in the comments. If the OP explicitly asks for tools, say so, so the
+   drafter knows a disclosed Antares mention is allowed.
 
 Don't draft the reply. If `score < 5`, return an empty string.
 
