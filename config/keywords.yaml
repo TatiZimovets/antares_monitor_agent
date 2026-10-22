@@ -1,0 +1,127 @@
+# Antares Monitor — keyword config
+# Edit freely. Changes take effect on the next run.
+#
+# Goal: every Reddit thread about BI migrations and the struggle around them
+# (any source -> target, conversion pain, complexity/effort estimation,
+# validation). See .claude/skills/antares-product/SKILL.md for context.
+#
+# QUERY BUDGET: SerpApi Starter = 1,000 searches/month. Each keyword cluster
+# (<= MAX_OR_TERMS_PER_QUERY terms) costs 1 query per subreddit listed below,
+# or 1 query total when `subreddits` is empty (= search all of Reddit).
+# Each extra_query costs 1. Clusters are split into chunks of
+# MAX_OR_TERMS_PER_QUERY (5; Google ignores words past ~32 per query).
+# Current setup: 14 cluster queries + 7 extras = 21/run, ~630/month daily.
+#
+# Keyword syntax:
+#   - plain text -> exact-phrase match:  tableau to power bi  -> "tableau to power bi"
+#   - anything containing a double quote or starting with "(" is passed to
+#     Google verbatim, e.g.  "migration" "numbers don't match"
+#
+# After Google, a post is kept only if its text names a BI platform AND has a
+# migration signal (src/sources/search.py). Claude scoring does the rest.
+
+# Empty = search all of Reddit (site:reddit.com). The focused per-subreddit
+# sweeps live in extra_queries below.
+subreddits: []
+
+keyword_clusters:
+
+  # 1. Generic BI migration, any platform
+  bi_migration:
+    - BI migration
+    - BI tool migration
+    - BI platform migration
+    - dashboard migration
+    - migrating dashboards
+    - migrate our dashboards
+    - report migration
+    - reporting migration
+    - legacy BI
+    - BI consolidation
+
+  # 2. Tableau -> Power BI / Fabric (core route)
+  tableau_to_powerbi:
+    - tableau to power bi
+    - tableau to powerbi
+    - tableau to pbi
+    - tableau to fabric
+    - migrating from tableau
+    - migrate from tableau
+    - moving from tableau
+    - switching from tableau
+    - moving off tableau
+    - tableau migration
+
+  # 3. Other Antares routes (Databricks AI/BI, Sigma, Power BI as source)
+  other_routes:
+    - tableau to databricks
+    - tableau to sigma
+    - migrate to databricks dashboards
+    - databricks ai/bi dashboards
+    - lakeview dashboards
+    - power bi to tableau
+    - power bi to databricks
+    - power bi to sigma
+    - migrating from power bi
+    - moving off power bi
+
+  # 4. Other sources (planned: Qlik, SAS VA) + common legacy BI migrations
+  other_sources:
+    - qlik to power bi
+    - migrating from qlik
+    - qlik sense migration
+    - qlikview migration
+    - sas visual analytics migration
+    - cognos to power bi
+    - microstrategy to power bi
+    - business objects migration
+    - looker to power bi
+    - ssrs to power bi
+
+  # 5. Technical conversion pain
+  technical_conversion:
+    - LOD to DAX
+    - LOD expressions in DAX
+    - tableau calculated fields to DAX
+    - tableau table calculations in DAX
+    - tableau data blending in power bi
+    - tableau parameters in power bi
+    - convert tableau workbook
+    - rebuild tableau dashboards
+    - recreate tableau dashboard
+    - convert twbx
+
+  # 6. Complexity, effort and planning
+  complexity_planning:
+    - migration effort estimate
+    - estimate migration effort
+    - migration complexity
+    - dashboard complexity
+    - dashboard inventory
+    - migration assessment
+    - migration readiness
+    - how long did your migration take
+    - unused dashboards
+    - which dashboards to migrate
+
+  # 7. Struggles and validation
+  struggles:
+    - '"migration" "numbers don''t match"'
+    - '"migrated" "numbers don''t match"'
+    - '"migration" "parity" "dashboards"'
+    - '"migration" "nightmare" "dashboards"'
+    - '"migration" "deadline" "dashboards"'
+    - '"rebuilding" "dashboards" "manually"'
+    - '"migration" "validate" "dashboards"'
+    - '"migration" "taking forever" "dashboards"'
+
+# Raw Google queries appended verbatim, one per focused subreddit. They catch
+# migration threads whose wording the clusters above miss.
+extra_queries:
+  - site:reddit.com/r/PowerBI ("tableau" OR "qlik" OR "cognos" OR "microstrategy" OR "ssrs" OR "looker") ("migration" OR "migrating" OR "migrate" OR "moving from" OR "switching from")
+  - site:reddit.com/r/tableau ("migration" OR "migrating" OR "migrate" OR "moving to" OR "switching to" OR "power bi" OR "sigma" OR "databricks")
+  - site:reddit.com/r/BusinessIntelligence ("migration" OR "migrating" OR "migrate" OR "moving from" OR "switching from")
+  - site:reddit.com/r/dataengineering ("dashboard migration" OR "BI migration" OR "migrating dashboards" OR "tableau" OR "power bi migration")
+  - site:reddit.com/r/databricks ("tableau" OR "power bi" OR "ai/bi" OR "lakeview" OR "dashboards") ("migration" OR "migrating" OR "migrate" OR "moving from")
+  - site:reddit.com/r/MicrosoftFabric ("tableau" OR "qlik" OR "cognos" OR "microstrategy") ("migration" OR "migrating" OR "migrate" OR "moving from")
+  - site:reddit.com/r/analytics ("BI migration" OR "migrating dashboards" OR "tableau to" OR "to power bi" OR "dashboard migration")

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  launchd agent for the Antares Monitor pipeline.
+
+  Installed to: ~/Library/LaunchAgents/io.antares.monitor.plist
+  Installed by: scripts/install_schedule.sh (which fills in the paths)
+  Removed by:   scripts/uninstall_schedule.sh
+
+  Runs daily at 09:00 local time. If the Mac is asleep at 09:00, launchd
+  will run the job on the next wake — so you won't miss a day.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>io.antares.monitor</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>__PROJECT_DIR__/.venv/bin/python</string>
+    <string>__PROJECT_DIR__/scripts/local_run.py</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>__PROJECT_DIR__</string>
+
+  <!-- Run once a day at 09:00 local. -->
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>9</integer>
+    <key>Minute</key>
+    <integer>0</integer>
+  </dict>
+
+  <!-- If missed (laptop asleep / off), run on next opportunity. -->
+  <key>RunAtLoad</key>
+  <false/>
+
+  <key>StandardOutPath</key>
+  <string>__PROJECT_DIR__/logs/monitor.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>__PROJECT_DIR__/logs/monitor.err.log</string>
+
+  <!-- Inherit user's PATH so the venv python resolves correctly. -->
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
+  </dict>
+</dict>
+</plist>
