@@ -11,6 +11,7 @@ model determines the post can't be answered without breaking voice.
 from __future__ import annotations
 
 import logging
+import re
 from pathlib import Path
 
 from anthropic import Anthropic
@@ -75,7 +76,20 @@ def draft_comment(client: Anthropic, model: str, scored: Scored) -> str:
         messages=[{"role": "user", "content": _format_input(scored)}],
     )
     text = "".join(b.text for b in resp.content if getattr(b, "type", "") == "text")
-    return text.strip()
+    return _strip_ai_tells(text.strip())
+
+
+_EMPHASIS_RE = re.compile(r"\*{1,2}([^*\n]+)\*{1,2}")
+
+
+def _strip_ai_tells(text: str) -> str:
+    """Backstop for typography the prompt bans but the model still slips in:
+    em dashes, arrows and markdown emphasis read as AI-written on Reddit."""
+    if is_skip(text):
+        return text
+    text = text.replace(" — ", ", ").replace("—", ", ")
+    text = text.replace(" → ", " to ").replace("→", " to ")
+    return _EMPHASIS_RE.sub(r"\1", text)
 
 
 def draft_all(api_key: str, model: str, leads: list[Scored]) -> dict[str, str]:

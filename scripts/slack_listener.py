@@ -87,7 +87,6 @@ def main() -> int:
         return 0
 
     web = WebClient(token=cfg.slack_bot_token, ssl=_SSL_CONTEXT)
-    leads = LeadsDB()
     client = SocketModeClient(app_token=cfg.slack_app_token, web_client=web)
 
     def on_request(client: SocketModeClient, req: SocketModeRequest) -> None:
@@ -95,7 +94,9 @@ def main() -> int:
         client.send_socket_mode_response(SocketModeResponse(envelope_id=req.envelope_id))
         if req.type == "interactive" and req.payload.get("type") == "block_actions":
             try:
-                handle_click(web, leads, req.payload)
+                # Requests arrive on worker threads and a sqlite3 connection
+                # can't cross threads, so open one per click.
+                handle_click(web, LeadsDB(), req.payload)
             except Exception:
                 log.exception("failed to handle click")
 
