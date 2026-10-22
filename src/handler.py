@@ -7,7 +7,8 @@ Pipeline:
   4. Score each post with Claude (scout pass — score + candidate brief)
   5. For score >= threshold, draft an actual comment with Claude
      (drafter pass — brand-voice-compliant comment text)
-  6. Send a Slack card per qualifying lead (brief + drafted comment)
+  6. Send a Slack card per qualifying lead (brief + drafted comment +
+     Replied / Skip buttons, tracked in src/leads.py)
   7. Mark all seen URLs so we don't re-score tomorrow
   8. Post a daily run-summary card to Slack (counts + score buckets)
 """
@@ -18,6 +19,7 @@ import logging
 
 from .config import EXTRA_QUERIES, KEYWORD_CLUSTERS, SUBREDDITS, load_config
 from .drafter import draft_all
+from .leads import LeadsDB
 from .models import Post
 from .scorer import Scored, score_all
 from .slack import (
@@ -25,19 +27,34 @@ from .slack import (
     bucketize_scores,
     post_analyzed_urls_thread,
     send_summary_to_slack,
+    send_lead_via_bot,
     send_summary_via_bot,
     send_to_slack,
 )
 from .sources.search import build_queries, fetch_all
-from .store import build_store
+from .store import build_store, url_key
 
 log = logging.getLogger()
 log.setLevel(logging.INFO)
 
 
+def deliver_lead(cfg, leads: LeadsDB, s: Scored, drafted: str) -> bool:
+    """Post a lead card. With a bot token the card gets Replied / Skip buttons
+    and is tracked in the leads table; otherwise it falls back to the webhook."""
+    if cfg.slack_bot_token and cfg.slack_channel_id:
+        key = url_key(s.post.url)
+        result = send_lead_via_bot(cfg.slack_bot_token, cfg.slack_channel_id, s, key, drafted)
+        if result.get("ok"):
+            leads.add_lead(s, result["channel"], result["ts"])
+            return True
+        log.warning("bot lead post failed (%s); falling back to webhook", result.get("error"))
+    return send_to_slack(cfg.slack_webhook_url, s, drafted_comment=drafted)
+
+
 def run() -> dict:
     cfg = load_config()
     store = build_store(cfg.dedup_backend, cfg.dynamodb_table, cfg.aws_region)
+    leads = LeadsDB()
 
     errors: list[str] = []
 
@@ -85,10 +102,12 @@ def run() -> dict:
             for s in scored:
                 store.mark(s.post.url)
                 if s.score >= cfg.score_threshold:
-                    drafted = drafts.get(s.post.url, "")
-                    if send_to_slack(cfg.slack_webhook_url, s, drafted_comment=drafted):
+                    if deliver_lead(cfg, leads, s, drafts.get(s.post.url, "")):
                         sent += 1
                 log.info("score=%d url=%s", s.score, s.post.url)
+
+    if cfg.slack_bot_token or cfg.slack_webhook_url:  # dry runs don't count toward the day stats
+        leads.record_run(len(raw), len(fresh), len(scored), sent)
 
     summary = RunSummary(
         fetched_total=len(raw),

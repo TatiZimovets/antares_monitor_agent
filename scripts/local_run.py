@@ -91,8 +91,10 @@ def _do_preview(cfg) -> int:
 
 def _do_from_cache(cfg) -> int:
     from src.drafter import draft_all
+    from src.handler import deliver_lead
+    from src.leads import LeadsDB
     from src.scorer import score_all
-    from src.slack import RunSummary, bucketize_scores, send_summary_to_slack, send_to_slack
+    from src.slack import RunSummary, bucketize_scores, send_summary_to_slack
     from src.store import build_store
 
     if not CACHE_PATH.exists():
@@ -113,11 +115,12 @@ def _do_from_cache(cfg) -> int:
     qualifying = [s for s in scored if s.score >= cfg.score_threshold]
     drafts = draft_all(cfg.anthropic_api_key, cfg.anthropic_model, qualifying) if qualifying else {}
 
+    leads = LeadsDB()
     sent = 0
     for s in scored:
         store.mark(s.post.url)
         if s.score >= cfg.score_threshold:
-            if send_to_slack(cfg.slack_webhook_url, s, drafted_comment=drafts.get(s.post.url, "")):
+            if deliver_lead(cfg, leads, s, drafts.get(s.post.url, "")):
                 sent += 1
         print(f"  score={s.score}/10  url={s.post.url}")
 

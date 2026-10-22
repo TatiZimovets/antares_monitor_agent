@@ -60,6 +60,7 @@ class Config:
     slack_webhook_url: str
     slack_bot_token: str
     slack_channel_id: str
+    slack_app_token: str         # xapp-… for the Socket Mode button listener
     serpapi_key: str
     jina_api_key: str
     score_threshold: int
@@ -98,6 +99,7 @@ def load_config() -> Config:
         slack_webhook_url=_get("SLACK_WEBHOOK_URL"),
         slack_bot_token=_get("SLACK_BOT_TOKEN"),
         slack_channel_id=_get("SLACK_CHANNEL_ID"),
+        slack_app_token=_get("SLACK_APP_TOKEN"),
         serpapi_key=_get("SERPAPI_KEY"),
         jina_api_key=_get("JINA_API_KEY"),
         score_threshold=int(_get("SCORE_THRESHOLD", "7")),

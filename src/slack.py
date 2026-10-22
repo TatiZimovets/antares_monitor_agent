@@ -123,6 +123,68 @@ def send_to_slack(webhook_url: str, scored: Scored, drafted_comment: str = "") -
         return False
 
 
+# ─── Bot-token path: lead cards with Replied / Skip buttons ─────────────────
+# Clicks are handled by scripts/slack_listener.py (Socket Mode). The button
+# value is the lead's url_key, which is the primary key in src/leads.py.
+
+LEAD_ACTIONS_BLOCK_ID = "lead_actions"
+LEAD_STATUS_BLOCK_ID = "lead_status"
+
+
+def lead_actions_block(key: str) -> dict:
+    return {
+        "type": "actions",
+        "block_id": LEAD_ACTIONS_BLOCK_ID,
+        "elements": [
+            {
+                "type": "button",
+                "action_id": "lead_replied",
+                "text": {"type": "plain_text", "text": ":white_check_mark: Replied", "emoji": True},
+                "style": "primary",
+                "value": key,
+            },
+            {
+                "type": "button",
+                "action_id": "lead_skipped",
+                "text": {"type": "plain_text", "text": ":fast_forward: Skip", "emoji": True},
+                "value": key,
+            },
+        ],
+    }
+
+
+def lead_status_block(key: str, status: str, user_id: str, at: datetime) -> dict:
+    label = ":white_check_mark: *Replied*" if status == "replied" else ":fast_forward: *Skipped*"
+    return {
+        "type": "section",
+        "block_id": LEAD_STATUS_BLOCK_ID,
+        "text": {"type": "mrkdwn", "text": f"{label} by <@{user_id}> · {at.strftime('%b %d, %H:%M')}"},
+        "accessory": {
+            "type": "button",
+            "action_id": "lead_undo",
+            "text": {"type": "plain_text", "text": "Undo"},
+            "value": key,
+        },
+    }
+
+
+def send_lead_via_bot(bot_token: str, channel: str, scored: Scored, key: str, drafted_comment: str = "") -> dict:
+    """Post one lead card with Replied / Skip buttons. Returns {ok, ts, channel, error}."""
+    blocks = _build_blocks(scored, drafted_comment) + [lead_actions_block(key)]
+    fallback = f"Antares lead — score {scored.score}/10 on {scored.post.platform}"
+    try:
+        client = WebClient(token=bot_token, ssl=_SSL_CONTEXT)
+        resp = client.chat_postMessage(channel=channel, text=fallback, blocks=blocks, unfurl_links=False)
+        return {"ok": True, "ts": resp.get("ts"), "channel": resp.get("channel")}
+    except SlackApiError as e:
+        err = e.response.get("error", str(e))
+        log.error("slack lead (bot) failed for %s: %s", scored.post.url, err)
+        return {"ok": False, "error": err}
+    except Exception as e:
+        log.error("slack lead (bot) unexpected error for %s: %s", scored.post.url, e)
+        return {"ok": False, "error": str(e)}
+
+
 def bucketize_scores(scores: list[int]) -> dict[str, int]:
     """Bucket a list of raw scores into the rubric tiers."""
     buckets = {"9-10": 0, "7-8": 0, "5-6": 0, "1-4": 0}
@@ -313,4 +375,62 @@ def post_analyzed_urls_thread(
         return {"ok": False, "error": err}
     except Exception as e:
         log.error("slack threaded URL list unexpected error: %s", e)
+        return {"ok": False, "error": str(e)}
+
+
+# ─── Evening stats card ─────────────────────────────────────────────────────
+
+
+def _build_daily_stats_blocks(day: str, today: dict, week: dict) -> list[dict]:
+    def funnel(s: dict) -> str:
+        return (
+            f"*Found on Reddit:* {s['found']}   •   *New:* {s['fresh']}   •   *Scored:* {s['scored']}\n"
+            f"*Leads sent:* {s['sent']}   •   *Replied:* {s['replied']}   •   *Skipped:* {s['skipped']}"
+        )
+
+    blocks: list[dict] = [
+        {
+            "type": "header",
+            "text": {"type": "plain_text", "text": f":chart_with_upwards_trend: Antares day summary — {day}", "emoji": True},
+        },
+        {"type": "section", "text": {"type": "mrkdwn", "text": funnel(today)}},
+    ]
+    if today["runs"] == 0:
+        blocks.append(
+            {"type": "context", "elements": [{"type": "mrkdwn", "text": ":warning: No scan ran today."}]}
+        )
+    blocks += [
+        {
+            "type": "section",
+            "text": {"type": "mrkdwn", "text": f":hourglass_flowing_sand: *Still waiting for Replied / Skip:* {today['open']}"},
+        },
+        {"type": "divider"},
+        {"type": "section", "text": {"type": "mrkdwn", "text": f"*Last 7 days*\n{funnel(week)}"}},
+        {
+            "type": "context",
+            "elements": [
+                {"type": "mrkdwn", "text": "Replies to your comments: coming once Reddit API access is approved."}
+            ],
+        },
+    ]
+    return blocks
+
+
+def send_daily_stats(bot_token: str, channel: str, day: str, today: dict, week: dict) -> dict:
+    fallback = (
+        f"Antares day summary — {day}: found {today['found']}, sent {today['sent']}, "
+        f"replied {today['replied']}, skipped {today['skipped']}"
+    )
+    try:
+        client = WebClient(token=bot_token, ssl=_SSL_CONTEXT)
+        resp = client.chat_postMessage(
+            channel=channel, text=fallback, blocks=_build_daily_stats_blocks(day, today, week)
+        )
+        return {"ok": True, "ts": resp.get("ts")}
+    except SlackApiError as e:
+        err = e.response.get("error", str(e))
+        log.error("slack daily stats failed: %s", err)
+        return {"ok": False, "error": err}
+    except Exception as e:
+        log.error("slack daily stats unexpected error: %s", e)
         return {"ok": False, "error": str(e)}

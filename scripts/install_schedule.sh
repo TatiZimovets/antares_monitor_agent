@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-# Install the launchd daily schedule for the Antares Monitor pipeline.
+# Install the launchd jobs for the Antares Monitor:
+#   io.antares.monitor   daily 09:00  scan Reddit, post leads with buttons
+#   io.antares.stats     daily 19:00  post the day summary
+#   io.antares.listener  always on    handle Replied / Skip button clicks
 #
 # Usage:
 #   scripts/install_schedule.sh
@@ -10,10 +13,8 @@
 set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TEMPLATE="$PROJECT_DIR/infra/launchd/io.antares.monitor.plist.template"
 TARGET_DIR="$HOME/Library/LaunchAgents"
-TARGET_PLIST="$TARGET_DIR/io.antares.monitor.plist"
-LABEL="io.antares.monitor"
+LABELS=(io.antares.monitor io.antares.stats io.antares.listener)
 
 if [[ ! -x "$PROJECT_DIR/.venv/bin/python" ]]; then
   echo "error: $PROJECT_DIR/.venv/bin/python not found"
@@ -23,22 +24,30 @@ fi
 
 mkdir -p "$TARGET_DIR" "$PROJECT_DIR/logs"
 
-# Substitute the project path into the template.
-sed "s|__PROJECT_DIR__|$PROJECT_DIR|g" "$TEMPLATE" > "$TARGET_PLIST"
+for LABEL in "${LABELS[@]}"; do
+  TEMPLATE="$PROJECT_DIR/infra/launchd/$LABEL.plist.template"
+  TARGET_PLIST="$TARGET_DIR/$LABEL.plist"
 
-# Unload if already present (idempotent), then load.
-if launchctl list | grep -q "$LABEL"; then
-  launchctl unload "$TARGET_PLIST" 2>/dev/null || true
-fi
-launchctl load "$TARGET_PLIST"
+  # Substitute the project path into the template.
+  sed "s|__PROJECT_DIR__|$PROJECT_DIR|g" "$TEMPLATE" > "$TARGET_PLIST"
 
-echo "installed: $TARGET_PLIST"
-echo "status:    $(launchctl list | grep "$LABEL" || echo 'not listed (check logs)')"
+  # Unload if already present (idempotent), then load.
+  if launchctl list | grep -q "$LABEL"; then
+    launchctl unload "$TARGET_PLIST" 2>/dev/null || true
+  fi
+  launchctl load "$TARGET_PLIST"
+  echo "installed: $TARGET_PLIST"
+done
+
 echo
-echo "next run:  daily at 09:00 local time (next wake if asleep)"
-echo "logs:      $PROJECT_DIR/logs/monitor.out.log"
-echo "           $PROJECT_DIR/logs/monitor.err.log"
+echo "status:"
+launchctl list | grep io.antares || echo "  not listed (check logs)"
 echo
-echo "run immediately:  launchctl start $LABEL"
+echo "monitor:   daily at 09:00 local time (next wake if asleep)"
+echo "summary:   daily at 19:00 local time"
+echo "listener:  running now; needs SLACK_APP_TOKEN in .env"
+echo "logs:      $PROJECT_DIR/logs/{monitor,stats,listener}.{out,err}.log"
+echo
+echo "run immediately:  launchctl start io.antares.monitor"
 echo "                  # or: scripts/run_now.sh"
 echo "stop schedule:    scripts/uninstall_schedule.sh"

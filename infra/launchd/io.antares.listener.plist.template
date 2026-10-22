@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  launchd agent for the Slack Replied / Skip button listener
+  (scripts/slack_listener.py, Socket Mode).
+
+  Installed to: ~/Library/LaunchAgents/io.antares.listener.plist
+  Installed by: scripts/install_schedule.sh (which fills in the paths)
+  Removed by:   scripts/uninstall_schedule.sh
+
+  Starts at login and is restarted if it crashes. If SLACK_APP_TOKEN is
+  missing it exits cleanly and stays stopped.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>io.antares.listener</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>__PROJECT_DIR__/.venv/bin/python</string>
+    <string>__PROJECT_DIR__/scripts/slack_listener.py</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>__PROJECT_DIR__</string>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <!-- Restart only after a crash, not after a clean exit. -->
+  <key>KeepAlive</key>
+  <dict>
+    <key>SuccessfulExit</key>
+    <false/>
+  </dict>
+  <key>ThrottleInterval</key>
+  <integer>30</integer>
+
+  <key>StandardOutPath</key>
+  <string>__PROJECT_DIR__/logs/listener.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>__PROJECT_DIR__/logs/listener.err.log</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
+  </dict>
+</dict>
+</plist>

@@ -285,6 +285,11 @@ def fetch_all(
                 log.info("skip: translated URL — %s", h.url)
                 seen.add(h.url)
                 continue
+            if not REDDIT_POST_RE.search(h.url):
+                # Subreddit home / listing pages (r/PowerBI/new/), not a thread.
+                log.info("skip: not a thread — %s", h.url)
+                seen.add(h.url)
+                continue
             if not _is_recent(h.date_hint):
                 log.debug("skip stale: %s (%s)", h.url, h.date_hint)
                 continue
