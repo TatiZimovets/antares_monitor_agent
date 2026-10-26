@@ -77,11 +77,11 @@ _MIGRATION_SIGNAL_WORDS = [
     r"rebuil\w*", r"recreat\w*",       # rebuild, rebuilt, recreate
     r"switch(?:ing|ed)?\s+(?:from|to|over)",
     r"mov(?:e|ing|ed)\s+(?:from|to|off)",
-    r"replac\w*",                       # replace, replacing, replacement
     r"sunset\w*", r"decommission\w*",
-    r"lod", r"dax",
     r"parity",
-    r"complexity", r"effort", r"estimat\w*", r"inventory",
+    # Not here on purpose: dax, lod, replace, effort, estimate, complexity,
+    # inventory. They show up in everyday single-platform posts and let
+    # non-migration threads through to the scorer.
 ]
 _MIGRATION_SIGNAL_RE = re.compile(r"\b(?:" + "|".join(_MIGRATION_SIGNAL_WORDS) + r")\b", re.I)
 

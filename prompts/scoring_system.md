@@ -67,7 +67,14 @@ were wrongly scored 7–8 before):
   one platform.
 - "Self-hosted Databricks alternative for my homelab": not BI at all.
 - "Fabric warehouse cache can't be cleared": platform operations.
+- "Power BI import gateway strategy" (r/databricks): how to connect Power BI
+  to Databricks, nothing is moving between BI platforms.
+- "How to add a resource to an app space" (r/databricks): platform admin.
 - A subreddit home page or listing (`r/PowerBI/new/`) rather than a thread.
+
+A data source change (Power BI now reading from Databricks instead of SQL
+Server), a gateway, a connector or a refresh setup is not a BI migration.
+The dashboards have to move to another BI tool.
 
 If the answer is yes, score with the rubric below.
 
@@ -125,10 +132,12 @@ Migration is mentioned but isn't the point, or there's little to add.
 
 ### Snippet-only posts
 If the body starts with `[Full thread text unavailable — Google title + snippet
-only]`, Reddit blocked the full-page fetch. Judge from the title and snippet;
-don't penalize the missing body. If the title alone clearly shows a migration
-question, score it normally and say in the brief that a human must read the
-thread before replying.
+only]`, Reddit blocked the full-page fetch. Judge from the title and snippet only,
+and don't fill in what the body might say. The gate must be passed
+**explicitly**: the title or snippet itself has to say that dashboards or
+reports are moving from one named BI platform to another (or that the OP is
+planning / estimating / validating that). If it doesn't, the score is 4 or
+lower. If it does, score it normally.
 
 ---
 
@@ -158,6 +167,6 @@ Return ONLY this JSON object. No prose, no markdown fences:
 
 {
   "score": <int 1-10>,
-  "reasoning": "<1-2 sentences: topic fit + value we can add + audience>",
+  "reasoning": "<one short sentence, max ~20 words: which route and what the OP needs>",
   "candidate_brief": "<handoff for the drafter, or empty string if score < 5>"
 }

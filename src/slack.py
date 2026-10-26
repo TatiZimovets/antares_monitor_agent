@@ -93,15 +93,8 @@ def _build_blocks(s: Scored, drafted_comment: str = "") -> list[dict]:
             "type": "section",
             "text": {"type": "mrkdwn", "text": f"*<{p.url}|{_truncate(title, 150)}>*"},
         },
-        {
-            "type": "section",
-            "text": {"type": "mrkdwn", "text": f"*Why it matched:* {_truncate(s.reasoning, 500)}"},
-        },
-        {
-            "type": "section",
-            "text": {"type": "mrkdwn", "text": f"*Candidate brief:*\n>>> {_truncate(s.candidate_brief, 2000)}"},
-        },
-        {"type": "divider"},
+        # The brief stays drafter-only: the reader opens the thread anyway.
+        {"type": "context", "elements": [{"type": "mrkdwn", "text": f"*Why:* {_truncate(s.reasoning, 200)}"}]},
         _draft_section(drafted_comment),
     ]
 
