@@ -18,7 +18,7 @@ from __future__ import annotations
 import logging
 
 from .config import EXTRA_QUERIES, KEYWORD_CLUSTERS, SUBREDDITS, load_config
-from .drafter import draft_all
+from .drafter import draft_all, is_skip
 from .leads import LeadsDB
 from .models import Post
 from .scorer import Scored, score_all
@@ -40,7 +40,12 @@ log.setLevel(logging.INFO)
 
 def deliver_lead(cfg, leads: LeadsDB, s: Scored, drafted: str) -> bool:
     """Post a lead card. With a bot token the card gets Replied / Skip buttons
-    and is tracked in the leads table; otherwise it falls back to the webhook."""
+    and is tracked in the leads table; otherwise it falls back to the webhook.
+    Leads without a usable draft aren't sent: a card with nothing to post
+    is just noise."""
+    if not drafted or is_skip(drafted):
+        log.info("not sent, no usable draft: %s", s.post.url)
+        return False
     if cfg.slack_bot_token and cfg.slack_channel_id:
         key = url_key(s.post.url)
         result = send_lead_via_bot(cfg.slack_bot_token, cfg.slack_channel_id, s, key, drafted)
